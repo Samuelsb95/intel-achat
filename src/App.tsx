@@ -340,6 +340,61 @@ function RisksUpdateButton({categories,onUpdate}:{categories:string[];onUpdate:(
   return(<button onClick={update} disabled={loading} style={{...S.bsm,opacity:loading?0.6:1}}>{loading?"Mise a jour...":"Actualiser avec IA"}</button>);
 }
 
+
+function Onboarding({onComplete}:{onComplete:(u:Record<string,any>)=>void}){
+  const [step,setStep]=useState(0);const [name,setName]=useState("");const [email,setEmail]=useState("");
+  const [cats,setCats]=useState<string[]>([]);const [idxs,setIdxs]=useState<string[]>([]);
+  const toggleCat=(c:string)=>{const next=cats.includes(c)?cats.filter(x=>x!==c):[...cats,c];setCats(next);setIdxs([...new Set(next.flatMap(x=>CATS[x]?.indices||[]))]);};
+  const toggleIdx=(id:string)=>setIdxs(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+  const grouped=ALL_INDICES.reduce((a:{[k:string]:typeof ALL_INDICES},i)=>({...a,[i.category]:[...(a[i.category]||[]),i]}),{});
+  return(
+    <div style={{minHeight:"100vh",background:"#070D1A",display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"system-ui,sans-serif",color:"#E2E8F0"}}>
+      <div style={{width:"100%",maxWidth:620}}>
+        <div style={{display:"flex",gap:6,marginBottom:40}}>{[0,1,2].map(i=><div key={i} style={{height:3,flex:1,borderRadius:2,background:i<=step?"#818CF8":"rgba(255,255,255,0.07)",transition:"background .3s"}}/>)}</div>
+        {step===0&&(<div>
+          <div style={{fontSize:11,color:"#818CF8",letterSpacing:2,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>INTEL - Veille Marches Achats</div>
+          <div style={{fontSize:26,fontWeight:700,color:"#F8FAFC",marginBottom:6}}>Creer votre compte</div>
+          <div style={{fontSize:13,color:"#475569",marginBottom:32}}>Plateforme de veille personnalisee pour equipes achat</div>
+          <div style={{display:"flex",flexDirection:"column",gap:14}}><input value={name} onChange={e=>setName(e.target.value)} placeholder="Nom et Prenom" style={S.input}/><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email professionnel" type="email" style={S.input}/></div>
+          <button onClick={()=>name&&email&&setStep(1)} style={{...S.btn,width:"100%",marginTop:24,padding:"13px 20px",opacity:name&&email?1:0.4}}>Continuer</button>
+        </div>)}
+        {step===1&&(<div>
+          <div style={{fontSize:22,fontWeight:700,color:"#F8FAFC",marginBottom:6}}>Vos categories</div>
+          <div style={{fontSize:13,color:"#475569",marginBottom:24}}>Selectionnez les marches que vous gerez</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            {Object.entries(CATS).map(([cat,m])=>{const sel=cats.includes(cat);return(
+              <div key={cat} onClick={()=>toggleCat(cat)} style={{padding:"14px 16px",borderRadius:12,cursor:"pointer",border:`1px solid ${sel?m.color:"rgba(255,255,255,0.08)"}`,background:sel?m.color+"12":"rgba(255,255,255,0.02)",transition:"all .2s"}}>
+                <div style={{fontSize:22,marginBottom:6}}>{m.icon}</div><div style={{fontSize:12,fontWeight:600,color:sel?m.color:"#94A3B8"}}>{cat}</div>
+              </div>
+            );})}
+          </div>
+          <button onClick={()=>cats.length&&setStep(2)} style={{...S.btn,width:"100%",marginTop:24,padding:"13px 20px",opacity:cats.length?1:0.4}}>Continuer ({cats.length})</button>
+        </div>)}
+        {step===2&&(<div>
+          <div style={{fontSize:22,fontWeight:700,color:"#F8FAFC",marginBottom:6}}>Vos indices</div>
+          <div style={{fontSize:13,color:"#475569",marginBottom:24}}>Preselection basee sur vos categories</div>
+          <div style={{maxHeight:420,overflowY:"auto",paddingRight:4}}>
+            {Object.entries(grouped).map(([cat,items])=>(
+              <div key={cat} style={{marginBottom:18}}>
+                <div style={{fontSize:11,color:"#475569",textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>{cat}</div>
+                {items.map(idx=>{const sel=idxs.includes(idx.id);return(
+                  <div key={idx.id} onClick={()=>toggleIdx(idx.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:8,cursor:"pointer",marginBottom:5,background:sel?"rgba(129,140,248,0.07)":"rgba(255,255,255,0.02)",border:`1px solid ${sel?"rgba(129,140,248,0.25)":"rgba(255,255,255,0.05)"}`,transition:"all .15s"}}>
+                    <div style={{width:15,height:15,borderRadius:4,border:`2px solid ${sel?"#818CF8":"#334155"}`,background:sel?"#818CF8":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{sel&&<span style={{color:"white",fontSize:9}}>v</span>}</div>
+                    <span style={{flex:1,fontSize:12,color:sel?"#E2E8F0":"#94A3B8",fontWeight:sel?500:400}}>{idx.label}</span>
+                    <span style={{fontSize:10,color:"#475569"}}>{idx.unit}</span>
+                    <span style={{fontSize:11,fontWeight:600,color:idx.trend>=0?"#F87171":"#34D399"}}>{idx.trend>=0?"^":"v"} {Math.abs(idx.trend)}%</span>
+                  </div>
+                );})}
+              </div>
+            ))}
+          </div>
+          <button onClick={()=>onComplete({name,email,categories:cats,indices:idxs})} style={{...S.btn,width:"100%",marginTop:16,padding:"13px 20px"}}>Acceder au dashboard</button>
+        </div>)}
+      </div>
+    </div>
+  );
+}
+
 function SuppliersTab({userCats}:{userCats:string[]}){
   const [suppliers,setSuppliers]=useState<Record<string,any>[]>([]);
   const [step,setStep]=useState<"list"|"search"|"verify"|"add">("list");
@@ -888,10 +943,10 @@ function Dashboard({user,onLogout,onUpdate}:{user:Record<string,any>;onLogout:()
 
 export default function App(){
   const [screen,setScreen]=useState("loading");const [user,setUser]=useState<Record<string,any>|null>(null);
-  useEffect(()=>{(async()=>{const users=await stGet(USERS_KEY)||{};let last:string|null=null;try{last=localStorage.getItem("intel_v8");}catch{}if(last&&users[last]){setUser(users[last]);setScreen("app");}else setScreen("Onboarding");})();},[]);
+  useEffect(()=>{(async()=>{const users=await stGet(USERS_KEY)||{};let last:string|null=null;try{last=localStorage.getItem("intel_v8");}catch{}if(last&&users[last]){setUser(users[last]);setScreen("app");}else setScreen("onboarding");})();},[]);
   const handleComplete=async(p:Record<string,any>)=>{const users=await stGet(USERS_KEY)||{};users[p.email]=p;await stSet(USERS_KEY,users);try{localStorage.setItem("intel_v8",p.email);}catch{}setUser(p);setScreen("app");};
-  const handleLogout=()=>{try{localStorage.removeItem("intel_v8");}catch{}setUser(null);setScreen("Onboarding");};
+  const handleLogout=()=>{try{localStorage.removeItem("intel_v8");}catch{}setUser(null);setScreen("onboarding");};
   if(screen==="loading")return<div style={{minHeight:"100vh",background:"#070D1A",display:"flex",alignItems:"center",justifyContent:"center",color:"#334155",fontSize:12}}>Chargement...</div>;
-  if(screen==="Onboarding")return<Onboarding onComplete={handleComplete}/>;
+  if(screen==="onboarding")return<Onboarding onComplete={handleComplete}/>;
   return<Dashboard user={user!} onLogout={handleLogout} onUpdate={setUser}/>;
 }
