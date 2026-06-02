@@ -154,7 +154,12 @@ function ForecastModal({idx,onClose}:{idx:Record<string,any>;onClose:()=>void}){
     const last=idx.values[idx.values.length-1];
     const p=`Tu es expert analyse marches et achats. Indice : ${idx.label} (${idx.unit}), source : ${idx.source}. Valeurs recentes : ${idx.values.join(", ")}. Tendance : ${idx.trend>=0?"+":""}${idx.trend}%. Valeur actuelle : ${last}. Horizon : ${HZ[hz]}. Reponds UNIQUEMENT en JSON valide sans markdown ni texte : {"scenario_optimiste":{"valeur":0,"variation_pct":0,"moteurs":["",""]},"scenario_central":{"valeur":0,"variation_pct":0,"moteurs":["",""]},"scenario_pessimiste":{"valeur":0,"variation_pct":0,"moteurs":["",""]},"niveau_confiance":"modere","signal_acheteur":""}`;
     const txt=await callGemini(p);
-    try{setRes(JSON.parse(txt.replace(/```json|```/g,"").trim()));}catch{setRes(null);}
+    try{
+      let clean=txt.replace(/```json|```/g,"").trim();
+      const start=clean.indexOf("{");const end=clean.lastIndexOf("}");
+      if(start>=0&&end>=0) clean=clean.slice(start,end+1);
+      setRes(JSON.parse(clean));
+    }catch{setRes(null);}
     setLoading(false);
   };
   const runJ=async()=>{
@@ -296,7 +301,10 @@ function IndexDetailModal({idx,liveValue,onClose}:{idx:Record<string,any>;liveVa
           </div>
           {(dateFrom||dateTo)&&<div style={{display:"flex",alignItems:"flex-end"}}><button onClick={()=>{setDateFrom("");setDateTo("");}} style={{...S.bsm,fontSize:11}}>Reinitialiser</button></div>}
         </div>
-        {(dateFrom||dateTo)&&<div style={{fontSize:11,color:"#FBBF24",marginBottom:10,padding:"6px 10px",background:"rgba(251,191,36,0.08)",borderRadius:6}}>Historique etendu disponible apres connexion aux APIs CNR, INSEE, LME ou ECB selon l'indice.</div>}
+        {(dateFrom||dateTo)&&<div style={{fontSize:11,color:"#FBBF24",marginBottom:10,padding:"6px 10px",background:"rgba(251,191,36,0.08)",borderRadius:6}}>
+          Periode affichee : {dateFrom?new Date(dateFrom).toLocaleDateString("fr-FR",{month:"short",year:"numeric"}):"debut"} → {dateTo?new Date(dateTo).toLocaleDateString("fr-FR",{month:"short",year:"numeric"}):"aujourd'hui"} — Historique etendu disponible via APIs CNR, INSEE, LME ou ECB.
+        </div>}
+        {(!dateFrom&&!dateTo)&&<div style={{fontSize:10,color:"#475569",marginBottom:10}}>Donnees sur 7 mois — utilisez les filtres de periode ci-dessus pour une vue personnalisee</div>}
 
         <Spark values={displayValues} color={color} w={520} h={90}/>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginTop:16}}>
@@ -415,7 +423,7 @@ function SuppliersTab({userCats}:{userCats:string[]}){
   const searchSupplier=async()=>{
     if(!searchQuery.trim())return;
     setSearching(true);setSearchResults([]);
-    const prompt=`Tu es un assistant recherche fournisseurs. L'utilisateur cherche le fournisseur : "${searchQuery}". Reponds UNIQUEMENT en JSON valide sans markdown : {"found":true,"results":[{"name":"Nom officiel","country":"Pays","website":"https://...","sector":"Secteur principal","description":"Description courte 1 phrase","employees":"Taille approximative","revenue":"CA approximatif si connu"}]} avec 2-3 resultats possibles. Si aucun resultat pertinent, found:false et results:[].`;
+    const prompt=`Tu es un assistant expert en fournisseurs industriels et logistiques. L'utilisateur recherche : "${searchQuery}". Meme pour les grands groupes connus (Toyota Industries, KION Group, Jungheinrich, Michelin, Lyreco, Legrand, Schneider Electric, Crown Equipment, Hyster-Yale, etc.), fournis leurs informations reelles et precises. Reponds UNIQUEMENT en JSON valide sans markdown : {"found":true,"results":[{"name":"Nom officiel complet","country":"Pays siege social","website":"https://site-officiel.com","sector":"Secteur precis","description":"Description 1 phrase avec positionnement marche","employees":"Effectifs approximatifs","revenue":"CA annuel approximatif"}]} avec 2-3 resultats dont le principal en premier.`;
     const txt=await callGemini(prompt);
     try{const parsed=JSON.parse(txt.replace(/```json|```/g,"").trim());setSearchResults(parsed.results||[]);}catch{setSearchResults([]);}
     setSearching(false);setStep("verify");
