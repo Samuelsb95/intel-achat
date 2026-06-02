@@ -888,10 +888,10 @@ function Dashboard({user,onLogout,onUpdate}:{user:Record<string,any>;onLogout:()
 
 export default function App(){
   const [screen,setScreen]=useState("loading");const [user,setUser]=useState<Record<string,any>|null>(null);
-  useEffect(()=>{(async()=>{const users=await stGet(USERS_KEY)||{};let last:string|null=null;try{last=localStorage.getItem("intel_v8");}catch{}if(last&&users[last]){setUser(users[last]);setScreen("app");}else setScreen("onboarding");})();},[]);
+  useEffect(()=>{(async()=>{const users=await stGet(USERS_KEY)||{};let last:string|null=null;try{last=localStorage.getItem("intel_v8");}catch{}if(last&&users[last]){setUser(users[last]);setScreen("app");}else setScreen("Onboarding");})();},[]);
   const handleComplete=async(p:Record<string,any>)=>{const users=await stGet(USERS_KEY)||{};users[p.email]=p;await stSet(USERS_KEY,users);try{localStorage.setItem("intel_v8",p.email);}catch{}setUser(p);setScreen("app");};
-  const handleLogout=()=>{try{localStorage.removeItem("intel_v8");}catch{}setUser(null);setScreen("onboarding");};
+  const handleLogout=()=>{try{localStorage.removeItem("intel_v8");}catch{}setUser(null);setScreen("Onboarding");};
   if(screen==="loading")return<div style={{minHeight:"100vh",background:"#070D1A",display:"flex",alignItems:"center",justifyContent:"center",color:"#334155",fontSize:12}}>Chargement...</div>;
-  if(screen==="onboarding")return<Onboarding onComplete={handleComplete}/>;
+  if(screen==="Onboarding")return<Onboarding onComplete={handleComplete}/>;
   return<Dashboard user={user!} onLogout={handleLogout} onUpdate={setUser}/>;
 }
